@@ -1,4 +1,3 @@
-// ALBALOSHI Tailor - Firebase Cloud Config
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
 
@@ -13,4 +12,4 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
-console.log("✅ Firebase Connected: albaloshi-tailor");
+console.log("✅ Firebase Connected - Separate File");
