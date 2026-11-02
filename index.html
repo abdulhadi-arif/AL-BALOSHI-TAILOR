@@ -26,7 +26,6 @@ body{font-family:'Outfit',system-ui}
 .file-wrapper{position:relative;overflow:hidden;border:2px dashed #ccc;border-radius:16px;background:#f9f9f7}
 .file-wrapper input{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;z-index:10}
 .ltr-input{direction:ltr!important;text-align:left!important}
-.ltr-display{direction:ltr!important;text-align:center!important}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9998;display:none}
 .modal-bg.show{display:flex}
 .search-input{background:#fff;border:2px solid rgba(0,0,0,0.06)}
@@ -39,8 +38,6 @@ body{font-family:'Outfit',system-ui}
 .input-stylish{background:#fcf9f6;border:2px solid transparent;transition:0.3s}
 .input-stylish:focus{border-color:#D4AF37;background:#fff}
 .input-gold{border-color:#D4AF37!important;background:#fff!important}
-</style>
-<style>
 @keyframes goldGlow{0%,100%{box-shadow:0 0 30px rgba(212,175,55,0.4)}50%{box-shadow:0 0 60px rgba(212,175,55,0.7)}}
 .logo-glow{animation:goldGlow 3s infinite}
 .splash-logo{animation: goldGlow 2s infinite; border:2px solid rgba(212,175,55,0.4)}
@@ -99,11 +96,50 @@ body{font-family:'Outfit',system-ui}
 <input id="cName" type="text" placeholder="Customer Name" class="input-fix w-full rounded-[16px] p-4 text-[15px] mb-3">
 <input id="cMobile" readonly placeholder="Mobile Number" class="measure-input ltr-input input-fix w-full rounded-[16px] p-4 mb-4">
 <div id="dynamicNaapFields" class="grid grid-cols-2 gap-2.5 mb-4"></div>
+
+<div class="grid grid-cols-1 gap-2.5 mt-2 mb-3">
+  <select id="bainType" class="input-fix w-full rounded-[18px] p-4 text-[13px] font-bold">
+    <option value="بین - Bain">بین - Bain</option>
+    <option value="کالر - Collar">کالر - Collar</option>
+  </select>
+  <select id="cuffType" class="input-fix w-full rounded-[18px] p-4 text-[13px] font-bold">
+    <option value="کف سیدھا - Cuff Seedha">کف سیدھا - Cuff Seedha</option>
+    <option value="کف گول - Cuff Gol">کف گول - Cuff Gol</option>
+  </select>
+  <select id="gheeraType" class="input-fix w-full rounded-[18px] p-4 text-[13px] font-bold">
+    <option value="گھیرا سیدھا - Gheera Seedha">گھیرا سیدھا - Gheera Seedha</option>
+    <option value="گھیرا گول - Gheera Gol">گھیرا گول - Gheera Gol</option>
+  </select>
+</div>
+
 <div class="grid grid-cols-3 gap-2.5 mb-4">
 <input id="qty" readonly value="1" class="measure-input input-fix w-full rounded-[14px] p-3.5 text-center font-bold">
 <input id="price" readonly placeholder="Total Price" class="measure-input input-fix w-full rounded-[14px] p-3.5 text-center">
 <input id="adv" readonly placeholder="Advance" class="measure-input input-fix w-full rounded-[14px] p-3.5 text-center">
 </div>
+
+<!-- TAFSEEL TAP YOUR STORY FINAL -->
+<div class="mt-3 mb-4">
+  <div class="flex items-center gap-2 mb-2">
+    <span>📜</span>
+    <p class="font-bold text-[13px]">تفصیل - Tap Tafseel</p>
+  </div>
+  <div class="bg-white border-2 border-black/10 rounded-[18px] p-2">
+    <textarea id="tafseelInput" rows="5" placeholder="...Tap Your Tafseel
+Yahan likhein: Tich pe design, Qameez pe jaal..."
+    class="w-full p-4 rounded-[14px] bg-transparent outline-none text-[13px]"
+    style="text-align:left;"></textarea>
+  </div>
+</div>
+
+<script>
+function getTafseelData(){
+  var el = document.getElementById('tafseelInput');
+  var val = el ? el.value.trim() : '';
+  if(val) return [{name: val, type: ''}];
+  return [];
+}
+</script>
 <div class="file-wrapper mb-4 p-4 text-center"><input type="file" id="pics" accept="image/*" multiple><div>📷 Cloth Photo</div></div>
 <div id="fileCount" class="hidden mb-2 text-[11px] bg-green-100 py-2 rounded-full font-bold text-center"></div>
 <div id="picsPreview" class="grid grid-cols-3 gap-2 mb-3"></div>
@@ -133,11 +169,6 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
 window.cloudDB = db;
 window.fbOps = { collection, doc, setDoc, deleteDoc, onSnapshot };
 window.cloudConnected = true;
-console.log("✅ Firebase file loaded - SEPARATE FILE + LOGO - FIXED");
-const dot = document.getElementById('cloudDot');
-const status = document.getElementById('cloudStatus');
-if(dot){ dot.classList.remove('bg-red-500'); dot.classList.add('bg-green-500'); }
-if(status){ status.textContent = "Cloud: Connected ✓ Fixed"; }
 </script>
 <script>
 const $=id=>document.getElementById(id);
@@ -184,51 +215,139 @@ function startCloudSync(){
     snap.forEach(d=> cloudCache.push(d.data()));
     saveData(cloudCache);
     renderCompactCards(cloudCache);
-  }, (err)=>{
-    console.log("Firestore sync error:", err);
-    showToast("Cloud error: " + err.message);
   });
 }
 async function cloudSaveCustomer(obj){
-  if(!window.cloudDB || !currentUser){
-    showToast("Local saved - Cloud not ready");
-    return;
-  }
+  if(!window.cloudDB || !currentUser){return;}
   try{
     const {pics, ...objWithoutPics} = obj;
     const cloudData = {...objWithoutPics, picsCount: (obj.pics?obj.pics.length:0), hasPics: (obj.pics && obj.pics.length>0), updatedAt: new Date().toISOString()};
     const docRef = window.fbOps.doc(window.cloudDB, `users/${currentUser}/customers`, obj.id);
     await window.fbOps.setDoc(docRef, cloudData);
     showToast("Saved to Cloud ✓");
-  }catch(e){ 
-    console.error(e);
-    showToast("Local saved - " + (e.message || e.code || "error")); 
-  }
+  }catch(e){ showToast("Local saved"); }
 }
 async function cloudDelete(id){
   if(!window.cloudDB || !currentUser) return;
   try{
     const docRef = window.fbOps.doc(window.cloudDB, `users/${currentUser}/customers`, id);
     await window.fbOps.deleteDoc(docRef);
-  }catch(e){ console.log(e); }
+  }catch(e){}
 }
 $('searchInput').oninput=(e)=>{let q=e.target.value.toLowerCase().trim();let data=cloudCache.length?cloudCache:getData();if(q){let filtered=data.filter(o=>o.name.toLowerCase().includes(q)||o.mobile.includes(q));renderCompactCards(filtered);}else{renderCompactCards(data);}};
 function renderCompactCards(data){
 let html=data.slice().reverse().map(o=>{
-let baqi=(+o.price||0)-(+o.adv||0);
-return `<div onclick="openDetailModal('${o.id}')" class="card rounded-[20px] p-4 flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-11 h-11 bg-black text-white rounded-[12px] flex items-center justify-center font-bold">${o.name.charAt(0).toUpperCase()}</div><div><div class="font-bold text-[14px]">${o.name}</div><div class="text-[11px] text-zinc-500">${o.mobile}</div></div></div><div><a href="tel:${o.mobile}">📞</a> <button onclick="editCustomer('${o.id}')">✏️</button></div></div>`;
+return `<div onclick="openDetailModal('${o.id}')" class="card rounded-[20px] p-4 flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-11 h-11 bg-black text-white rounded-[12px] flex items-center justify-center font-bold">${o.name.charAt(0).toUpperCase()}</div><div><div class="font-bold text-[14px]">${o.name}</div><div class="text-[11px] text-zinc-500">${o.mobile}</div></div></div><div>📞 ✏️</div></div>`;
 }).join('');
 $('detailsListHome').innerHTML=html||'<div class="text-center py-20 opacity-40">No Data</div>';
 }
-window.openDetailModal=(id)=>{let data=cloudCache.length?cloudCache:getData();let o=data.find(x=>x.id==id);if(!o)return;let mHtml=Object.entries(o.measurements||{}).map(([k,v])=>`<div class="bg-[#fdfbf8] rounded-[14px] p-3 text-center border"><div class="text-[10px]">${k}</div><div class="font-bold">${v||'-'}</div></div>`).join('');$('modalContent').innerHTML=`<div class="p-4"><b>${o.name}</b><div>${o.mobile}</div><div class="grid grid-cols-3 gap-2 mt-4">${mHtml}</div><div class="grid grid-cols-2 gap-2 mt-4"><button onclick="editCustomer('${o.id}'); closeModal();" class="bg-black text-white rounded-[14px] py-3">Edit</button><button onclick="deleteCustomer('${o.id}'); closeModal();" class="bg-red-50 text-red-600 rounded-[14px] py-3">Delete</button></div></div>`;$('detailModal').classList.add('show');$('detailModal').style.display='flex';};
+window.openDetailModal=(id)=>{
+  let data=cloudCache.length?cloudCache:getData();
+  let o=data.find(x=>x.id==id);
+  if(!o)return;
+  let mHtml=Object.entries(o.measurements||{}).map(([k,v])=>`<div class="bg-[#fdfbf8] rounded-[14px] p-3 text-center border"><div class="text-[10px]">${k}</div><div class="font-bold">${v||'-'}</div></div>`).join('');
+  let extraHtml = `
+    <div class="grid grid-cols-3 gap-2 mt-3">
+      <div class="bg-[#fff8f0] rounded-[14px] p-3 text-center border border-yellow-500/20"><div class="text-[9px]">بین/کالر</div><div class="font-bold text-[12px]">${o.bainType||'-'}</div></div>
+      <div class="bg-[#fff8f0] rounded-[14px] p-3 text-center border border-yellow-500/20"><div class="text-[9px]">کف</div><div class="font-bold text-[12px]">${o.cuffType||'-'}</div></div>
+      <div class="bg-[#fff8f0] rounded-[14px] p-3 text-center border border-yellow-500/20"><div class="text-[9px]">گھیرا</div><div class="font-bold text-[12px]">${o.gheeraType||'-'}</div></div>
+    </div>
+  `;
+  let tafseelHtml = '';
+  if(o.tafseelList && o.tafseelList.length>0){
+    tafseelHtml = `<div class="mt-3 bg-[#fff8f0] border border-dashed border-yellow-500/40 rounded-[14px] p-3">
+      <div class="text-[11px] font-bold mb-1">تفصیل - Tafseel:</div>
+      ${o.tafseelList.map(t=>`<div class="text-[12px] py-1">${t.name}</div>`).join('')}
+    </div>`;
+  }
+  $('modalContent').innerHTML=`<div class="p-4">
+    <div class="flex justify-between items-start">
+      <div><b class="text-[16px]">${o.name}</b><div class="text-[12px] opacity-60">${o.mobile}</div></div>
+      <button onclick="closeModal()" class="w-8 h-8 bg-black/10 rounded-full">X</button>
+    </div>
+    <div class="grid grid-cols-3 gap-2 mt-4">${mHtml}</div>
+    ${extraHtml}
+    ${tafseelHtml}
+    <div class="grid grid-cols-2 gap-2 mt-4"><button onclick="editCustomer('${o.id}'); closeModal();" class="bg-black text-white rounded-[14px] py-3">Edit</button><button onclick="deleteCustomer('${o.id}'); closeModal();" class="bg-red-50 text-red-600 rounded-[14px] py-3">Delete</button></div>
+  </div>`;
+  $('detailModal').classList.add('show');
+  $('detailModal').style.display='flex';
+};
 window.closeModal=()=>{$('detailModal').classList.remove('show');$('detailModal').style.display='none';};
 $('detailModal').onclick=(e)=>{if(e.target===$('detailModal')) closeModal();};
-window.editCustomer=(id)=>{let data=cloudCache.length?cloudCache:getData();let o=data.find(x=>x.id==id);if(!o)return;editingId=id;$('cName').value=o.name;$('cMobile').value=o.mobile;$('qty').value=o.qty;$('price').value=o.price;$('adv').value=o.adv;tempPics=o.pics||[];let fields=getFields();document.querySelectorAll('.naapInput').forEach((inp,i)=>{let label=fields[i];inp.value=(o.measurements && o.measurements[label])?o.measurements[label]:'';});openTab('details');};
+window.editCustomer=(id)=>{
+  let data=cloudCache.length?cloudCache:getData();
+  let o=data.find(x=>x.id==id);
+  if(!o)return;
+  editingId=id;
+  $('cName').value=o.name;
+  $('cMobile').value=o.mobile;
+  $('qty').value=o.qty;
+  $('price').value=o.price;
+  $('adv').value=o.adv;
+  $('bainType').value=o.bainType||'بین - Bain';
+  $('cuffType').value=o.cuffType||'کف سیدھا - Cuff Seedha';
+  $('gheeraType').value=o.gheeraType||'گھیرا سیدھا - Gheera Seedha';
+  if($('tafseelInput')){
+    if(o.tafseelList && o.tafseelList.length>0){
+      $('tafseelInput').value = o.tafseelList.map(t=>t.name).join('\n');
+    }else{
+      $('tafseelInput').value = '';
+    }
+  }
+  tempPics=o.pics||[];
+  let fields=getFields();
+  document.querySelectorAll('.naapInput').forEach((inp,i)=>{let label=fields[i];inp.value=(o.measurements && o.measurements[label])?o.measurements[label]:'';});
+  openTab('details');
+};
 window.deleteCustomer=async(id)=>{if(!confirm('Delete?'))return;let data=getData().filter(x=>x.id!=id);saveData(data);renderCompactCards(data);await cloudDelete(id);closeModal();showToast('Deleted ✓');};
-$('saveNaap').onclick=async()=>{closeKB();let name=$('cName').value,mob=$('cMobile').value;if(!name||!mob){showToast('Name/Number required');return;}let fields=getFields();let meas={};document.querySelectorAll('.naapInput').forEach((inp,i)=>meas[fields[i]]=inp.value);let data=getData();let obj=null;
-if(editingId){let idx=data.findIndex(x=>x.id==editingId);if(idx>-1){data[idx].name=name;data[idx].mobile=mob;data[idx].measurements=meas;data[idx].qty=$('qty').value;data[idx].price=$('price').value;data[idx].adv=$('adv').value;data[idx].pics=[...tempPics];obj=data[idx];saveData(data);}editingId=null;}else{obj={id:Date.now().toString(),name,mobile:mob,measurements:meas,qty:$('qty').value,price:$('price').value,adv:$('adv').value,pics:[...tempPics],date:new Date().toLocaleDateString()};data.push(obj);saveData(data);}
-if(obj) await cloudSaveCustomer(obj);
-$('cName').value='';$('cMobile').value='';document.querySelectorAll('.naapInput').forEach(i=>i.value='');$('qty').value=1;$('price').value='';$('adv').value='';$('pics').value='';$('picsPreview').innerHTML='';tempPics=[];loadAndRender();openTab('home');};
+$('saveNaap').onclick=async()=>{
+  closeKB();
+  let name=$('cName').value,mob=$('cMobile').value;
+  if(!name||!mob){showToast('Name/Number required');return;}
+  let fields=getFields();
+  let meas={};
+  document.querySelectorAll('.naapInput').forEach((inp,i)=>meas[fields[i]]=inp.value);
+  let bainType=$('bainType').value;
+  let cuffType=$('cuffType').value;
+  let gheeraType=$('gheeraType').value;
+  let tafseelList=getTafseelData();
+  let data=getData();
+  let obj=null;
+  if(editingId){
+    let idx=data.findIndex(x=>x.id==editingId);
+    if(idx>-1){
+      data[idx].name=name;
+      data[idx].mobile=mob;
+      data[idx].measurements=meas;
+      data[idx].qty=$('qty').value;
+      data[idx].price=$('price').value;
+      data[idx].adv=$('adv').value;
+      data[idx].bainType=bainType;
+      data[idx].cuffType=cuffType;
+      data[idx].gheeraType=gheeraType;
+      data[idx].tafseelList=tafseelList;
+      data[idx].pics=[...tempPics];
+      obj=data[idx];
+      saveData(data);
+    }
+    editingId=null;
+  }else{
+    obj={id:Date.now().toString(),name,mobile:mob,measurements:meas,qty:$('qty').value,price:$('price').value,adv:$('adv').value,bainType,cuffType,gheeraType,tafseelList,pics:[...tempPics],date:new Date().toLocaleDateString()};
+    data.push(obj);
+    saveData(data);
+  }
+  if(obj) await cloudSaveCustomer(obj);
+  $('cName').value='';$('cMobile').value='';
+  document.querySelectorAll('.naapInput').forEach(i=>i.value='');
+  $('qty').value=1;$('price').value='';$('adv').value='';
+  $('bainType').value='بین - Bain';
+  $('cuffType').value='کف سیدھا - Cuff Seedha';
+  $('gheeraType').value='گھیرا سیدھا - Gheera Seedha';
+  if($('tafseelInput')) $('tafseelInput').value='';
+  $('pics').value='';$('picsPreview').innerHTML='';tempPics=[];
+  loadAndRender();openTab('home');
+};
 function loadAndRender(){ let data=getData(); renderCompactCards(data); if(currentUser) startCloudSync(); }
 let savedUser=localStorage.getItem('baloshi_user');
 if(savedUser){currentUser=savedUser;$('splashScreen').classList.add('hidden');$('loginPage').classList.add('hidden');$('mainApp').classList.remove('hidden');loadAndRender();}
