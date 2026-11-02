@@ -356,5 +356,10 @@ window.directInstall=async()=>{
 if(deferredPrompt){deferredPrompt.prompt();let c=await deferredPrompt.userChoice;deferredPrompt=null;}else{showToast('Tap ⋮ → Add to Home Screen');}
 };
 </script>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js');
+}
+</script>
 </body>
 </html>
