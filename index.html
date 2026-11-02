@@ -358,7 +358,7 @@ if(deferredPrompt){deferredPrompt.prompt();let c=await deferredPrompt.userChoice
 </script>
 <script>
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./sw.js');
+  navigator.serviceWorker.register('./sw.js').then(()=>console.log('Offline Ready'));
 }
 </script>
 </body>
