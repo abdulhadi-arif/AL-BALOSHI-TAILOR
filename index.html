@@ -133,11 +133,11 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
 window.cloudDB = db;
 window.fbOps = { collection, doc, setDoc, deleteDoc, onSnapshot };
 window.cloudConnected = true;
-console.log("✅ Firebase file loaded - SEPARATE FILE + LOGO");
+console.log("✅ Firebase file loaded - SEPARATE FILE + LOGO - FIXED");
 const dot = document.getElementById('cloudDot');
 const status = document.getElementById('cloudStatus');
 if(dot){ dot.classList.remove('bg-red-500'); dot.classList.add('bg-green-500'); }
-if(status){ status.textContent = "Cloud: Connected ✓ Logo + Separate File"; }
+if(status){ status.textContent = "Cloud: Connected ✓ Fixed"; }
 </script>
 <script>
 const $=id=>document.getElementById(id);
@@ -145,7 +145,7 @@ let currentUser=null,tempPics=[],editingId=null,activeInput=null,activeDisplay='
 const key=()=>currentUser?`baloshi_${currentUser}`:'baloshi_main';
 const pinKey=p=>`pin_${p}`;
 let defaultFields=["Lambai","Chhati","Kamar","Kandha","Asteen","Ghera"];
-function showToast(m){let t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+function showToast(m){let t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
 function getFields(){return JSON.parse(localStorage.getItem('custom_fields')||JSON.stringify(defaultFields));}
 function saveFields(a){localStorage.setItem('custom_fields',JSON.stringify(a));}
 function renderHomeFields(){
@@ -184,22 +184,33 @@ function startCloudSync(){
     snap.forEach(d=> cloudCache.push(d.data()));
     saveData(cloudCache);
     renderCompactCards(cloudCache);
+  }, (err)=>{
+    console.log("Firestore sync error:", err);
+    showToast("Cloud error: " + err.message);
   });
 }
 async function cloudSaveCustomer(obj){
-  if(!window.cloudDB || !currentUser) return;
+  if(!window.cloudDB || !currentUser){
+    showToast("Local saved - Cloud not ready");
+    return;
+  }
   try{
+    const {pics, ...objWithoutPics} = obj;
+    const cloudData = {...objWithoutPics, picsCount: (obj.pics?obj.pics.length:0), hasPics: (obj.pics && obj.pics.length>0), updatedAt: new Date().toISOString()};
     const docRef = window.fbOps.doc(window.cloudDB, `users/${currentUser}/customers`, obj.id);
-    await window.fbOps.setDoc(docRef, obj);
+    await window.fbOps.setDoc(docRef, cloudData);
     showToast("Saved to Cloud ✓");
-  }catch(e){ showToast("Local saved"); }
+  }catch(e){ 
+    console.error(e);
+    showToast("Local saved - " + (e.message || e.code || "error")); 
+  }
 }
 async function cloudDelete(id){
   if(!window.cloudDB || !currentUser) return;
   try{
     const docRef = window.fbOps.doc(window.cloudDB, `users/${currentUser}/customers`, id);
     await window.fbOps.deleteDoc(docRef);
-  }catch(e){}
+  }catch(e){ console.log(e); }
 }
 $('searchInput').oninput=(e)=>{let q=e.target.value.toLowerCase().trim();let data=cloudCache.length?cloudCache:getData();if(q){let filtered=data.filter(o=>o.name.toLowerCase().includes(q)||o.mobile.includes(q));renderCompactCards(filtered);}else{renderCompactCards(data);}};
 function renderCompactCards(data){
